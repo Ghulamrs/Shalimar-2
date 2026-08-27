@@ -1,0 +1,27 @@
+// factorial.shm
+fun <int> = factloop(n: int) {
+  f : 1
+  for i : 2 to n {
+    f : f * i
+  }
+  return f
+}
+
+// n < 2 is what stops it calling
+// itself.
+fun <int> = fact(n: int) {
+  if n < 2 {
+    return 1
+  }
+  return n * fact(n - 1)
+}
+
+fun <> = main() {
+  n : 10
+  ? "factorial of" n
+  ? "by loop" factloop(n)
+  ? "by recursion" fact(n)
+}
+// expected: factorial of 10
+// expected: by loop 3628800
+// expected: by recursion 3628800

@@ -1,0 +1,53 @@
+// prime.shm
+// Two outputs: the remainder and the
+// factor that produced it.
+fun <int,int> = prime(n: int) {
+   int i : 2
+   int m : 1
+   if n < 2 { return (0, n) }
+   if n > 2 { m : n%i }
+   if m = 0 { return (m, i) }
+   q : ceil(sqrt(n))
+   for j:3 to q step 2 {
+      m : n%j
+      if m = 0 { return (m, j) }
+   }
+   return (m, i)
+}
+
+fun <> = main() {
+   for j:1301 to 1350 step 2 {
+      <d,k> : prime(j)
+      if d = 0 {
+         ? j "has factor" k
+      }
+      else {
+         ? j "is a prime"
+      }
+   }
+}
+// expected: 1301 is a prime
+// expected: 1303 is a prime
+// expected: 1305 has factor 3
+// expected: 1307 is a prime
+// expected: 1309 has factor 7
+// expected: 1311 has factor 3
+// expected: 1313 has factor 13
+// expected: 1315 has factor 5
+// expected: 1317 has factor 3
+// expected: 1319 is a prime
+// expected: 1321 is a prime
+// expected: 1323 has factor 3
+// expected: 1325 has factor 5
+// expected: 1327 is a prime
+// expected: 1329 has factor 3
+// expected: 1331 has factor 11
+// expected: 1333 has factor 31
+// expected: 1335 has factor 3
+// expected: 1337 has factor 7
+// expected: 1339 has factor 13
+// expected: 1341 has factor 3
+// expected: 1343 has factor 17
+// expected: 1345 has factor 5
+// expected: 1347 has factor 3
+// expected: 1349 has factor 19

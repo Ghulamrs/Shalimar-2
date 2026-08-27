@@ -1,0 +1,53 @@
+// rotations.shm
+// The three axis rotations as array
+// literals. rotmat.shm builds the
+// same three into a caller's array.
+//
+// Right-handed - the -sin sits in
+// the row above the row holding the
+// 1.0, counting round.
+//
+// pi/4, not pi/2: at a right angle
+// every entry is 0 or 1 whether the
+// trig ran or not.
+fun <> = ROX(angle: real) {
+  X : {{1.0,         0.,          0.},
+       {0.,  cos(angle),  sin(angle)},
+       {0., -sin(angle),  cos(angle)}}
+  ? X
+}
+
+fun <> = ROY(angle: real) {
+  Y : {{cos(angle), 0., -sin(angle)},
+       {0.,        1.0,          0.},
+       {sin(angle), 0.,  cos(angle)}}
+  ? Y
+}
+
+fun <> = ROZ(angle: real) {
+  Z : {{ cos(angle), sin(angle), 0.},
+       {-sin(angle), cos(angle), 0.},
+       {0.,                  0., 1.0}}
+  ? Z
+}
+
+fun <> = main() {
+  ? "Rx 45"
+  ROX(pi/4.)
+  ? "Ry 45"
+  ROY(pi/4.)
+  ? "Rz 45"
+  ROZ(pi/4.)
+}
+// expected: Rx 45
+// expected:  1.000000   0.000000   0.000000
+// expected:  0.000000   0.707107   0.707107
+// expected:  0.000000  -0.707107   0.707107
+// expected: Ry 45
+// expected:  0.707107   0.000000  -0.707107
+// expected:  0.000000   1.000000   0.000000
+// expected:  0.707107   0.000000   0.707107
+// expected: Rz 45
+// expected:  0.707107   0.707107   0.000000
+// expected: -0.707107   0.707107   0.000000
+// expected:  0.000000   0.000000   1.000000

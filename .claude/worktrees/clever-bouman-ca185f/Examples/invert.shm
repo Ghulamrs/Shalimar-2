@@ -1,0 +1,72 @@
+// invert.shm
+// Gauss-Jordan without pivoting, in
+// place: a becomes its inverse and
+// the determinant is returned.
+fun <real> = invert(a[][]: real) {
+  real tol : 1.0e-30
+  real det : 1.0
+  real r : 0.0
+
+  if a.row != a.col {
+    return 0.0
+  }
+
+  for i < a.row {
+    det : det * a[i][i]
+
+    // A collapsed pivot is pinned to
+    // tol; an exact zero is singular.
+    if abs(det) <= tol {
+      if a[i][i] = 0.0 { return det }
+      det : tol
+    }
+
+    r : 1.0 / a[i][i]
+    a[i][i] : 1.0
+    for j < a.col {
+      a[i][j] : r * a[i][j]
+    }
+
+    for k < a.row {
+      if k != i & a[k][i] != 0.0 {
+        r : a[k][i]
+        a[k][i] : 0.0
+        for j < a.col {
+          a[k][j] -: r * a[i][j]
+        }
+      }
+    }
+  }
+
+  return det
+}
+
+fun <> = main() {
+  real m[3][3] : {{4.0, 7.0, 2.0},
+                  {3.0, 6.0, 1.0},
+                  {2.0, 5.0, 3.0}}
+  // Row two is twice row one.
+  real s[3][3] : {{1.0, 2.0, 3.0},
+                  {2.0, 4.0, 6.0},
+                  {1.0, 1.0, 1.0}}
+  // Augmented: b in the last column.
+  real ab[2][3] : {{2.0, 1.0, 1.0},
+                   {1.0, 3.0, 2.0}}
+  real d : 0.0
+
+  d : invert(m)
+  ? "inverse, det" d
+  ? m
+
+  d : invert(s)
+  ? "singular, det" d
+
+  d : invert(ab)
+  ? "augmented, det" d
+}
+// expected: inverse, det 9.0000000
+// expected:  1.444444  -1.222222  -0.555556
+// expected: -0.777778   0.888889   0.222222
+// expected:  0.333333  -0.666667   0.333333
+// expected: singular, det 0.0000000
+// expected: augmented, det 0.0000000

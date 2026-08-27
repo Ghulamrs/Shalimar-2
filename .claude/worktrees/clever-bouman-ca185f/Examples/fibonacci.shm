@@ -1,0 +1,15 @@
+// fibonacci.shm
+fun <> = main() {
+  a : 0
+  b : 1
+  ? "fibonacci"
+  for i : 1 to 12 {
+    ?? a
+    t : a + b
+    a : b
+    b : t
+  }
+  ? "done"
+}
+// expected: fibonacci
+// expected: 0 1 1 2 3 5 8 13 21 34 55 89 done

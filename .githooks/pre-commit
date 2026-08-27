@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: run the Shalimar regression suite before a commit lands.
+#
+# Lives in the repository rather than .git/hooks so it is version-controlled and
+# reviewable. Enable it once per clone with:
+#
+#     git config core.hooksPath .githooks
+#
+# Bypass it for a single commit with:
+#
+#     git commit --no-verify
+#
+set -uo pipefail
+
+# The suite costs a swiftc compile, so only pay it when something it actually
+# covers is being committed. Docs- or storyboard-only commits skip straight past.
+if ! git diff --cached --name-only --diff-filter=ACMR |
+     grep -qE '^(Shalimar/(TokenKind|Node|Parse|Check|Interpreter|ScanLayout)\.swift|Tests/)'; then
+    exit 0
+fi
+
+# Test the staged tree, not the working tree. This matters in both directions:
+# an unstaged local fix must not hide a commit that is broken on its own, and an
+# unstaged half-finished experiment must not fail a commit that is perfectly
+# fine. Checking the index out into a scratch directory does that without ever
+# touching the working tree - unlike `git stash`, it cannot lose work if the
+# hook is interrupted.
+STAGED="$(mktemp -d)"
+trap 'rm -rf "$STAGED"' EXIT
+git checkout-index --all --prefix="$STAGED/"
+
+echo "pre-commit: running Shalimar regression suite against staged tree..."
+if "$STAGED/Tests/regression.sh" 2>/dev/null; then
+    exit 0
+fi
+
+cat <<'MSG'
+
+pre-commit: regression suite FAILED - commit aborted.
+
+  reproduce:  ./Tests/regression.sh
+  override:   git commit --no-verify
+
+MSG
+exit 1

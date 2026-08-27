@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shalimar scan sheets</title>
+<style>
+  /* Deliberately light-only and un-styled: this page exists to be photographed, so it ignores
+     the viewer's dark theme. Vision reads dark-on-light far better than the reverse, and a dark
+     screen photographs with far more glare. No syntax colouring either - coloured tokens are
+     lower contrast than plain black, and contrast is the whole game here.
+
+     GENERATED from Examples/*.shm by Tools/build-sheets.py - edit the .shm files, not this. */
+  :root { color-scheme: light; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: #000000;
+    font-family: "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  }
+
+  .sheet {
+    min-height: 100vh;
+    padding: 4vh 5vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-bottom: 1px dashed #cccccc;
+  }
+
+  /* Every line on the sheet is real Shalimar source, including the name and the expected result:
+     both are "//" comments. Two independent things then protect them. The scanner crops to the
+     main() block, so they are dropped before the text reaches the editor - and if a shot misses
+     the crop anchors, they still lex as comments rather than as code. */
+  pre {
+    margin: 0;
+    font-size: clamp(19px, 2.4vw, 32px);
+    /* Generous leading is the one setting that matters most: tightly-spaced lines are what make
+       Vision merge two of them into a single region, and a merged line is the one scanning
+       mistake the app can only report, never repair. */
+    line-height: 1.85;
+    letter-spacing: 0.02em;
+    font-variant-ligatures: none;
+    white-space: pre;
+    overflow-x: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .tips {
+    padding: 6vh 5vw;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: clamp(14px, 1.5vw, 18px);
+    line-height: 1.7;
+    color: #333333;
+    max-width: 46em;
+  }
+  .tips h2 { font-size: 1.3em; margin: 0 0 0.6em; }
+  .tips li { margin-bottom: 0.5em; }
+  .tips code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #f2f2f2; padding: 0.1em 0.3em; }
+
+  @media print {
+    .sheet { page-break-after: always; border-bottom: none; min-height: auto; }
+    .tips { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+<section class="sheet">
+<pre>// gcd.shm
+fun &lt;&gt; = main() {
+  a : 48
+  b : 18
+  ? &quot;gcd of&quot; a b
+  while b != 0 {
+    r : a % b
+    a : b
+    b : r
+  }
+  ? &quot;is&quot; a
+}
+// expected: gcd of 48 18
+// expected: is 6</pre>
+</section>
+
+<section class="sheet">
+<pre>// quadratic.shm
+fun &lt;&gt; = main() {
+  a : 1
+  b : -5
+  c : 6
+  d : b^2 - 4*a*c
+  if d &lt; 0 {
+    ? &quot;no real roots&quot;
+  }
+  else {
+    r : sqrt(d)
+    x1 : (-b-r)/(2*a)
+    x2 : (-b+r)/(2*a)
+    ? &quot;roots&quot; x1 x2
+  }
+}
+// expected: roots 2.0000000 3.0000000</pre>
+</section>
+
+<section class="sheet">
+<pre>// factorial.shm
+fun &lt;&gt; = main() {
+  n : 10
+  f : 1
+  for i : 2 to n {
+    f : f * i
+  }
+  ? &quot;factorial of&quot; n
+  ? &quot;is&quot; f
+}
+// expected: factorial of 10
+// expected: is 3628800</pre>
+</section>
+
+<section class="sheet">
+<pre>// fibonacci.shm
+fun &lt;&gt; = main() {
+  a : 0
+  b : 1
+  ? &quot;fibonacci&quot;
+  for i : 1 to 12 {
+    ?? a
+    t : a + b
+    a : b
+    b : t
+  }
+  ? &quot;done&quot;
+}
+// expected: fibonacci
+// expected: 0 1 1 2 3 5 8 13 21 34 55 89 done</pre>
+</section>
+
+<section class="sheet">
+<pre>// table.shm
+fun &lt;&gt; = main() {
+  n : 7
+  ? &quot;table of&quot; n
+  for i : 1 to 10 {
+    ?? n
+    ?? &quot;x&quot;
+    ?? i
+    ?? &quot;=&quot;
+    ? n*i
+  }
+}
+// expected: table of 7
+// expected: 7 x 1 = 7
+// expected: 7 x 5 = 35
+// expected: 7 x 10 = 70</pre>
+</section>
+
+<section class="sheet">
+<pre>// prime.shm
+fun &lt;&gt; = main() {
+  n : 97
+  f : 0
+  if n % 2 = 0 {
+    f : 2
+  }
+  q : ceil(sqrt(n))
+  for j : 3 to q step 2 {
+    if f = 0 {
+      if n % j = 0 {
+        f : j
+      }
+    }
+  }
+  ? n
+  if f = 0 {
+    ? &quot;is a prime&quot;
+  }
+  else {
+    ? &quot;has factor&quot; f
+  }
+}
+// expected: 97
+// expected: is a prime</pre>
+</section>
+
+<div class="tips">
+  <h2>Notes for the capture</h2>
+  <ul>
+    <li><strong>Both crop anchors must be in frame:</strong> the <code>fun &lt;&gt; = main() {</code>
+      line and the <code>}</code> that closes it. The scanner crops the photo to that block; with no
+      <code>main(</code> line found it keeps the raw text instead, and the app then reports
+      <code>No main() function defined</code> rather than anything about a bad crop.</li>
+    <li>Every line here is valid source. The name and expected-result lines are <code>//</code>
+      comments, so they are harmless whether they are cropped away or scanned in.</li>
+    <li>Each sheet is one full screen. Shoot straight on &mdash; a tilted photo tilts the bounding
+      boxes, which is what pushes two lines into one region.</li>
+    <li>Every program is entirely inside <code>main()</code>, on purpose: a helper function defined
+      outside it would be dropped by the crop.</li>
+    <li>Every <code>?</code> and <code>??</code> starts its line, one per line. If a scan merges two
+      lines, the alert after scanning names the first offending line.</li>
+    <li>Don't zoom so far that a line wraps. A wrapped line photographs as two lines and is read as
+      two.</li>
+  </ul>
+</div>
+
+</body>
+</html>

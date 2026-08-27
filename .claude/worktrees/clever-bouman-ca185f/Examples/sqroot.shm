@@ -1,0 +1,33 @@
+// sqroot.shm
+// Newton's method: the loop that
+// sqrt() hides.
+fun <real> = root(n: real) {
+  real x : 0.0
+  real last : 0.0
+  real tol : 1e-12
+
+  if n < 0.0 {
+    return -1.0
+  }
+  if n = 0.0 {
+    return 0.0
+  }
+
+  x : n
+  while abs(x - last) > tol {
+    last : x
+    x : (x + n / x) / 2.0
+  }
+  return x
+}
+
+fun <> = main() {
+  ? prec(10) "root 2 is" root(2.0)
+  ? "sqrt() says" sqrt(2.0)
+  ? "root 144 is" root(144.0)
+  ? "root -1 is" root(-1.0)
+}
+// expected: root 2 is 1.4142135624
+// expected: sqrt() says 1.4142135624
+// expected: root 144 is 12.0000000000
+// expected: root -1 is -1.0000000000

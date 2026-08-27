@@ -1,0 +1,17 @@
+// quadratic.shm
+fun <> = main() {
+  a : 1
+  b : -5
+  c : 6
+  d : b^2 - 4*a*c
+  if d < 0 {
+    ? "no real roots"
+  }
+  else {
+    r : sqrt(d)
+    x1 : (-b-r)/(2*a)
+    x2 : (-b+r)/(2*a)
+    ? "roots" x1 x2
+  }
+}
+// expected: roots 2.0000000 3.0000000

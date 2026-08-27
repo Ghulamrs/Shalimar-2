@@ -1,0 +1,58 @@
+// strsplit.shm
+// Split a string in two. An array
+// cannot be returned, so the pieces
+// go in and are filled.
+fun <int> = split(s[]: char,
+                  a[]: char,
+                  b[]: char) {
+  at : -1
+  // No character literal, so char(32)
+  // is the space.
+  for i < s.row {
+    if s[i] = char(32) {
+      at : i
+      break
+    }
+  }
+  if at < 0 {
+    return -1
+  }
+
+  // A piece too big for its box is
+  // clipped.
+  for i < at {
+    if i < a.row-1 {
+      a[i] : s[i]
+    }
+  }
+  a[min(at, a.row-1)] : char(0)
+
+  j : 0
+  for i : at+1 to s.row-1 {
+    if j < b.row-1 {
+      b[j] : s[i]
+      j : j + 1
+    }
+  }
+  b[j] : char(0)
+  return at
+}
+
+fun <> = main() {
+  char s[32] : "hello world"
+  char a[16]
+  char b[16]
+
+  at : split(s, a, b)
+  ? "split at" at
+  ? a
+  ? b
+
+  char t[32] : "nospacehere"
+  at : split(t, a, b)
+  ? "split at" at
+}
+// expected: split at 5
+// expected: hello
+// expected: world
+// expected: split at -1
