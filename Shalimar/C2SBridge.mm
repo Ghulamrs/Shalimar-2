@@ -24,8 +24,15 @@ C2SResult c2s_c_to_shalimar(const char *source, const char *name) {
     std::ostringstream report;
     for (std::size_t i = 0; i < r.diagnostics.size(); ++i) {
         const c2s::Diagnostic &d = r.diagnostics[i];
-        report << d.where().line() << ':' << d.where().column() << ": "
-               << d.code() << ": " << d.message() << '\n';
+        // Tab-separated fields, one diagnostic to a line: line, column,
+        // severity, code, message. Deliberately NOT pre-formatted - how a
+        // diagnostic is worded in the console is the app's business, and the
+        // console has conventions a C++ file should not be deciding for it.
+        const bool bad = d.severity() != c2s::Severity::Note &&
+                         d.severity() != c2s::Severity::Warning;
+        report << d.where().line() << '\t' << d.where().column() << '\t'
+               << (bad ? 'E' : 'W') << '\t' << d.code() << '\t'
+               << d.message() << '\n';
     }
 
     out.ok = r.ok ? 1 : 0;

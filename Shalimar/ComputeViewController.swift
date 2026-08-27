@@ -661,6 +661,57 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
     // number back out of the message keeps the strip agreeing with what the user is being
     // told: if the console names a line, that line is what gets marked, and a message
     // without a line (a lex error before any line is known) marks nothing.
+    // ---------------------------------------------------------------- C, via c2s
+    //
+    // **A program is C when it says so and does not say it is Shalimar.** Every
+    // Shalimar function is `fun <...> = name(...)`, and no C program contains
+    // that; C announces itself with an #include or a main() that returns a type.
+    // Both signals are required, and that is the point: a half-typed Shalimar
+    // program still counts as Shalimar and gets Shalimar's errors, which are the
+    // ones its author can act on. Guessing C at the first sign of trouble would
+    // answer a beginner's mistake with a diagnostic about a language they were
+    // not writing.
+    private static func looksLikeC(_ source: String) -> Bool {
+        if source.range(of: "fun[ \t]*<", options: .regularExpression) != nil { return false }
+        return source.range(of: "#[ \t]*include", options: .regularExpression) != nil
+            || source.range(of: "(int|void)[ \t]+main[ \t]*\\(", options: .regularExpression) != nil
+    }
+
+    /// Converts C to Shalimar, or reports why it cannot and answers nil.
+    ///
+    /// **Gated on beyondCount, not on `ok`.** A file with a struct comes back
+    /// ok=1 and beyondCount=4 - it converted everything else and marked the four
+    /// spots. Trusting `ok` would hand a marked-up program to the interpreter,
+    /// which would then fail somewhere unrelated with a message about Shalimar.
+    private func shalimarFromC(_ source: String) -> String? {
+        var result = c2s_c_to_shalimar(source, "program.c")
+        defer { c2s_free(&result) }
+
+        let report = result.report.map { String(cString: $0) } ?? ""
+        var sawError = false
+
+        for row in report.split(separator: "\n") {
+            let f = row.split(separator: "\t", maxSplits: 4, omittingEmptySubsequences: false)
+            guard f.count == 5 else { continue }
+            let bad = f[2] == "E"
+            if bad { sawError = true }
+            // "line N" is what lights the strip beside line N of the editor - and
+            // the number is the C's own, because the C is what is on screen.
+            append("\(bad ? "Error" : "Warning"): line \(f[0]): \(f[4])\n",
+                   bad ? .error : .warning)
+        }
+
+        guard result.beyondCount == 0 && !sawError else {
+            append("This C has \(result.beyondCount) construct"
+                   + (result.beyondCount == 1 ? "" : "s")
+                   + " with no Shalimar form, so it cannot be run here.\n", .error)
+            return nil
+        }
+
+        append("C converted to Shalimar, and run.\n", .system)
+        return result.output.map { String(cString: $0) }
+    }
+
     private static func reportedLine(in text: String) -> Int? {
         guard let match = text.range(of: "line [0-9]+", options: .regularExpression) else { return nil }
         return Int(text[match].dropFirst("line ".count))
@@ -1045,7 +1096,7 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
     
     @IBAction func ComputeTapped(_ sender: Any) {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        guard let programSource = program.text else {return}
+        guard var programSource = program.text else {return}
 
         // A run whose output has nowhere to land is a run nobody can read, and the errors
         // would be worse than the output: a program that failed to parse would show as
@@ -1059,6 +1110,13 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         // Every stage below can return early, and the strips have to be drawn whichever
         // one stopped the run - so this is deferred rather than repeated at four exits.
         defer { layoutErrorStrips() }
+
+        // C first, if this is C. What reaches the stages below is always
+        // Shalimar - the converter is a front end, not a second interpreter.
+        if Self.looksLikeC(programSource) {
+            guard let converted = shalimarFromC(programSource) else { return }
+            programSource = converted
+        }
 
         let lexer = Lexer(input: programSource)
         let tokens = lexer.tokenize()
