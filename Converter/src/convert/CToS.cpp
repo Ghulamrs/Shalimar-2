@@ -56,6 +56,23 @@ bool isShalimarReserved(const std::string &name) {
 //         so a C program calling one must not silently become the other. (C89
 //         has no max or min at all, so cc1 refuses the bare names anyway.)
 //   len   an array's own, never C's.
+// **What to call a type that has no Shalimar form.** Struct syntax says "no
+// struct support" wherever it appears - on a member access, on a declaration -
+// so the reader meets one sentence about structs rather than three. A pointer
+// says pointer. Anything else names itself, because this fires for `long long`
+// and `float` too, and dropping the name there would leave the reader guessing
+// which part of their declaration was refused.
+std::string noSupportFor(const CType *type) {
+    if (type == nullptr) return "no support for ?";
+    switch (type->kind()) {
+    case CType::Kind::Pointer: return "no pointer support";
+    case CType::Kind::Struct:  return "no struct support";
+    case CType::Kind::Union:   return "no union support";
+    case CType::Kind::Enum:    return "no enum support";
+    default:                   return "no support for " + type->describe();
+    }
+}
+
 const char *builtinFor(const std::string &name) {
     if (name == "fabs") return "abs";
     if (name == "max" || name == "min" || name == "len") return nullptr;
@@ -514,13 +531,13 @@ void CToS::visit(CUnary &node) {
         return;
     }
     if (op == "~") {
-        markBeyond(node.offset(), "'~' - Shalimar has no bitwise operators");
+        markBeyond(node.offset(), "'~' - no ~ support");
         expr_.reset();
         return;
     }
     if (op == "&" || op == "*") {
         markBeyond(node.offset(),
-                   std::string("'") + op + "' - Shalimar has no pointers");
+                   std::string("'") + op + "' - no pointer support");
         expr_.reset();
         return;
     }
@@ -633,7 +650,7 @@ void CToS::visit(CBinary &node) {
 
     if (op == "&" || op == "|" || op == "^" || op == "<<" || op == ">>") {
         markBeyond(node.offset(),
-                   "'" + op + "' - Shalimar has no bitwise operators");
+                   "'" + op + "' - no " + op + " support");
         expr_.reset();
         return;
     }
@@ -771,7 +788,7 @@ void CToS::visit(CIndex &node) {
 void CToS::visit(CMember &node) {
     markBeyond(node.offset(),
                std::string("'") + (node.arrow() ? "->" : ".") + node.name() +
-               "' - Shalimar has no structs");
+               "' - no struct or union support");
     expr_.reset();
 }
 
@@ -789,8 +806,8 @@ void CToS::visit(CCast &node) {
 }
 
 void CToS::visit(CSizeof &node) {
-    markBeyond(node.offset(), "'sizeof' - Shalimar has no size notion; arrays "
-                              "answer .row, .col and .dim(n)");
+    markBeyond(node.offset(), "'sizeof' - no sizeof support; arrays answer "
+                              ".row, .col and .dim(n)");
     expr_.reset();
 }
 
@@ -940,7 +957,7 @@ void CToS::visit(CExprStmt &node) {
             return;
         }
         markBeyond(node.offset(),
-                   "'" + op + "' - Shalimar has no bitwise operators");
+                   "'" + op + "' - no " + op + " support");
         return;
     }
 
@@ -1752,7 +1769,7 @@ void CToS::visit(CReturn &node) {
             CIntLit *lit = dynamic_cast<CIntLit *>(node.value());
             if (lit == nullptr || lit->value() != 0) {
                 markBeyond(node.offset(),
-                           "main returning a status - Shalimar has none");
+                           "main returning a status - not supported");
             }
         } else {
             canLift_ = true;
@@ -1773,11 +1790,11 @@ void CToS::visit(CReturn &node) {
 }
 
 void CToS::visit(CGoto &node) {
-    markBeyond(node.offset(), "'goto' - Shalimar has no labels");
+    markBeyond(node.offset(), "'goto' - no goto support");
 }
 
 void CToS::visit(CLabel &node) {
-    markBeyond(node.offset(), "a label - Shalimar has no goto");
+    markBeyond(node.offset(), "a label - no goto support");
     statement(node.body());
 }
 
@@ -2119,17 +2136,14 @@ void CToS::declareLocal(CDeclaration &decl, bool atTop) {
             (walk->kind() != CType::Kind::Int && walk->kind() != CType::Kind::Char &&
              walk->kind() != CType::Kind::Float && walk->kind() != CType::Kind::Double)) {
             markBeyond(declarator.offset,
-                       "the declaration of '" + declarator.name + "' - " +
-                       (type != nullptr ? type->describe() : std::string("?")) +
-                       " has no Shalimar type");
+                       "'" + declarator.name + "' - " + noSupportFor(type));
             continue;
         }
         bool lossy = false;
         const shalimar::Type *scalar = scalarS(*walk, &lossy);
         if (scalar == nullptr || lossy) {
             markBeyond(declarator.offset,
-                       "the declaration of '" + declarator.name + "' - " +
-                       walk->describe() + " has no Shalimar type");
+                       "'" + declarator.name + "' - " + noSupportFor(walk));
             continue;
         }
         if (scalar->kind() == shalimar::Type::Kind::Char && rank > 1) {
@@ -2575,12 +2589,12 @@ std::unique_ptr<shalimar::Program> CToS::convert(CProgram &program) {
 void CToS::convertTopDeclaration(CDeclaration &decl) {
 
     if (decl.storage() == CDeclaration::Storage::Typedef) {
-        markBeyond(declOffset(decl), "a typedef - Shalimar has no named types");
+        markBeyond(declOffset(decl), "a typedef - no typedef support");
         return;
     }
     if (decl.bareType() != nullptr) {
         markBeyond(declOffset(decl),
-                   decl.bareType()->describe() + " - Shalimar has no such type");
+                   decl.bareType()->describe() + " - " + noSupportFor(decl.bareType()));
         return;
     }
     if (decl.storage() == CDeclaration::Storage::Extern) {
