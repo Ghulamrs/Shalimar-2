@@ -39,13 +39,21 @@ enum BundledExamples {
         Bundle.main.url(forResource: "Examples", withExtension: nil)
     }
 
+    /// How many examples the parent list shows. **Three, deliberately.**
+    /// Twelve filled the screen and pushed "My programs" - the reader's own
+    /// work, and the reason they opened the app - off the top of it. The other
+    /// nine stay in the bundle; this shortens the list, it does not delete
+    /// anything, so raising the number is the whole of putting them back.
+    private static let shown = 3
+
     static func names() -> [String] {
         guard let directory = directory,
               let files = try? FileManager.default.contentsOfDirectory(
                   at: directory, includingPropertiesForKeys: nil) else { return [] }
         let found = Set(files.filter { $0.pathExtension == "shm" }.map { $0.lastPathComponent })
-        return order.filter { found.contains($0) }
-             + found.subtracting(order).sorted()
+        let all = order.filter { found.contains($0) }
+                + found.subtracting(order).sorted()
+        return Array(all.prefix(shown))
     }
 
     static func url(for name: String) -> URL? {
