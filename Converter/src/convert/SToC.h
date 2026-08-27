@@ -83,6 +83,7 @@ private:
     CStmtPtr declStmtFor(const std::string &name, CTypePtr type, CExprPtr init);
 
     const Source &source_;
+    Diagnostics &diagnostics_;
 
     std::unique_ptr<CProgram> program_;
     CCompound *block_ = nullptr;

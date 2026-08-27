@@ -279,6 +279,18 @@ std::vector<std::string> CToS::sourceLinesAt(std::size_t offset) const {
 
 void CToS::markBeyond(std::size_t offset, const std::string &reason) {
     ++beyondCount_;
+
+    // **And a diagnostic, with a position.** The marker below goes into the
+    // OUTPUT, which is right for a person reading the converted program - it
+    // sits where the construct stood, with the original line beneath it. But an
+    // editor cannot put a comment in its margin: it needs a line and a column,
+    // and this already has the offset. Without this the only thing reaching a
+    // caller was a count, so the tool could say "1 construct has no expression
+    // in the target language" and not say where.
+    diagnostics_.report(Severity::ConversionError, source_, source_.locate(offset),
+                        "C2100", reason,
+                        "there is no Shalimar form for this - the converted "
+                        "program is marked where it stands, and will not run");
     shalimar::StmtPtr marker(new SBeyondStmt(reason, sourceLinesAt(offset),
                                              lineOf(offset)));
 

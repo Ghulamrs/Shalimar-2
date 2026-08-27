@@ -68,9 +68,7 @@ void flattenLiteral(shalimar::ArrayLit &lit, std::vector<shalimar::Expr *> *out)
 }
 
 SToC::SToC(const Source &source, Diagnostics &diagnostics)
-    : source_(source) {
-    (void)diagnostics;
-}
+    : source_(source), diagnostics_(diagnostics) {}
 
 std::string SToC::sanitise(const std::string &name) {
     if (isCKeyword(name) || name.compare(0, 4, "c2s_") == 0) return name + "_v";
@@ -117,6 +115,14 @@ std::string SToC::cEscape(const std::string &text) {
 
 void SToC::markBeyond(int line, const std::string &reason) {
     ++beyondCount_;
+
+    // The same as CToS's, and for the same reason - see the note there. This
+    // side carries a line rather than an offset, so the column is 1: the whole
+    // statement is what has no C form, not one character of it.
+    diagnostics_.report(Severity::ConversionError, source_,
+                        Location(source_.name(), line, 1), "C2100", reason,
+                        "there is no C form for this - the converted program "
+                        "is marked where it stands, and will not compile");
     std::vector<std::string> lines;
     const std::string text = source_.line(line);
     if (!text.empty()) lines.push_back(text);
