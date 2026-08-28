@@ -40,8 +40,8 @@ private:
 class Options {
 public:
     Options() : direction_(Direction::Infer), emitIncludes_(true),
-                canonicalise_(false), showHelp_(false), showVersion_(false),
-                listCodes_(false) {}
+                canonicalise_(false), showLineMap_(false), showHelp_(false),
+                showVersion_(false), listCodes_(false) {}
 
     bool parse(int argc, char **argv, Diagnostics &diagnostics);
 
@@ -54,6 +54,8 @@ public:
     bool emitIncludes() const { return emitIncludes_; }
 
     bool canonicalise() const { return canonicalise_; }
+
+    bool showLineMap() const { return showLineMap_; }
 
     bool showHelp() const { return showHelp_; }
     bool showVersion() const { return showVersion_; }
@@ -71,6 +73,7 @@ private:
     Permissions permissions_;
     bool emitIncludes_;
     bool canonicalise_;
+    bool showLineMap_;
     bool showHelp_;
     bool showVersion_;
     bool listCodes_;

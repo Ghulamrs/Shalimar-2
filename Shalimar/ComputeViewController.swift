@@ -621,20 +621,63 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
 
     private func clearConsole() {
         console.attributedText = NSAttributedString(string: "")
+        // Belongs to the run that made it. A Shalimar program run after a C one
+        // would otherwise have its own line numbers translated through the C's.
+        cLineMap = []
         errorLines = []
         layoutErrorStrips()
     }
 
     private func append(_ text: String, _ style: ConsoleStyle) {
         let font = console.font ?? UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-        let run = NSMutableAttributedString(string: text,
+        let shown = style == .error || style == .warning
+                  ? Self.retargeted(text, through: cLineMap) : text
+        let run = NSMutableAttributedString(string: shown,
                                             attributes: [.foregroundColor: style.color, .font: font])
         Self.enlargeCopyrightSign(in: run, over: font)
         let all = NSMutableAttributedString(attributedString: console.attributedText
                                             ?? NSAttributedString(string: ""))
         all.append(run)
         console.attributedText = all
-        if style == .error, let line = Self.reportedLine(in: text) { errorLines.insert(line) }
+        if style == .error, let line = Self.reportedLine(in: shown) { errorLines.insert(line) }
+    }
+
+    // The C line each line of the converted Shalimar came from, empty unless a
+    // conversion just filled it. See `retargeted`.
+    private var cLineMap: [Int] = []
+
+    /// Rewrites every "line N" in a message to the line of C that produced line
+    /// N of the Shalimar.
+    ///
+    /// **The one place it can be done once.** Four stages report errors in four
+    /// different types and every one of them prints as "Error: line N:" - the
+    /// console text is where they meet, and this is what they all go through on
+    /// the way to it. The strips follow for free: `reportedLine` reads the text
+    /// after this has been applied, so a strip lands on the line the reader was
+    /// told about.
+    ///
+    /// Only errors and warnings. A program's own output is its own business,
+    /// and one that prints "line 3" means line 3.
+    ///
+    /// A number this cannot place is left exactly as it was. That covers the
+    /// map's own gaps - the `uses` clause belongs to no line of the C - and it
+    /// is the right answer for them: a wrong line is worse than an unhelpful
+    /// one, because the reader goes and looks.
+    private static func retargeted(_ text: String, through map: [Int]) -> String {
+        guard !map.isEmpty else { return text }
+        var out = ""
+        var rest = Substring(text)
+        while let found = rest.range(of: "line [0-9]+", options: .regularExpression) {
+            out += rest[rest.startIndex..<found.lowerBound]
+            let number = Int(rest[found].dropFirst("line ".count)) ?? 0
+            if number >= 1 && number <= map.count && map[number - 1] > 0 {
+                out += "line \(map[number - 1])"
+            } else {
+                out += rest[found]
+            }
+            rest = rest[found.upperBound...]
+        }
+        return out + rest
     }
 
     // © is drawn inside the same advance as a letter, so its ring ends up around the size
@@ -709,6 +752,12 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         }
 
         append("C converted to Shalimar, and run.\n", .system)
+
+        // Installed here and not a line earlier: everything above already
+        // names a line of the C, and would be translated a second time.
+        if let lines = result.lines, result.lineCount > 0 {
+            cLineMap = (0..<Int(result.lineCount)).map { Int(lines[$0]) }
+        }
         return result.output.map { String(cString: $0) }
     }
 

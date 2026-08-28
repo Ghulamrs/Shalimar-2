@@ -10,7 +10,7 @@
 
 namespace c2s {
 
-SPrinter::SPrinter() : depth_(0), floor_(TierOr) {}
+SPrinter::SPrinter() : depth_(0), scanned_(0), mapLine_(0), floor_(TierOr) {}
 
 SPrinter::Tier SPrinter::tierOf(shalimar::Binary::Op op) {
     using Op = shalimar::Binary::Op;
@@ -59,6 +59,17 @@ void SPrinter::line(const std::string &text) {
     indent();
     out_ += text;
     out_ += '\n';
+}
+
+// Attributes everything written since the last call to the line mapLine_ names,
+// one entry per newline. Called at the two edges of a statement rather than
+// wherever a newline is written: the printer emits '\n' in twenty places and a
+// hook at each of them would be twenty chances to miss one, while a statement
+// has exactly two edges and both of them are here.
+void SPrinter::sync() {
+    for (; scanned_ < out_.size(); ++scanned_) {
+        if (out_[scanned_] == '\n') map_.push_back(mapLine_);
+    }
 }
 
 void SPrinter::expr(shalimar::Expr &node, int floor) {
@@ -344,6 +355,13 @@ void SPrinter::visit(shalimar::Continue &) {
 }
 
 void SPrinter::statement(shalimar::Stmt &node) {
+    // Whatever has been written since the last statement - a `while ... {`
+    // header, the `}` that closed a block, the blank line before a function -
+    // belongs to the construct that wrote it, and mapLine_ still names it. So
+    // it is banked here, before this statement's own line takes over.
+    sync();
+    const int enclosing = mapLine_;
+    mapLine_ = node.line();
 
     if (SBeyondStmt *marker = dynamic_cast<SBeyondStmt *>(&node)) {
 
@@ -352,9 +370,15 @@ void SPrinter::statement(shalimar::Stmt &node) {
         for (std::size_t i = 0; i < lines.size(); ++i) {
             line("//    " + lines[i]);
         }
-        return;
+    } else {
+        node.accept(*this);
     }
-    node.accept(*this);
+
+    // A statement that opened a block has printed its whole body by now, and
+    // each of those was banked against its own line by the recursion. What is
+    // left is this statement's, including the `}` it just closed with.
+    sync();
+    mapLine_ = enclosing;
 }
 
 void SPrinter::block(shalimar::Block &body) {
@@ -422,6 +446,9 @@ void SPrinter::functionHeader(const shalimar::Prototype &proto) {
 std::string SPrinter::print(shalimar::Program &program) {
     out_.clear();
     depth_ = 0;
+    map_.clear();
+    scanned_ = 0;
+    mapLine_ = 0;
 
     // What the converted program borrows, one clause at the top. Shalimar has
     // no library function until a file asks for it - see
@@ -447,6 +474,9 @@ std::string SPrinter::print(shalimar::Program &program) {
         }
         out_ += "\n\n";
     }
+    // The clause is nobody's line - it is a summary of the whole file - and it
+    // is banked before any function claims the text above it.
+    sync();
 
     const std::vector<shalimar::Program::Entry> &order = program.order();
     bool first = true;
@@ -456,15 +486,23 @@ std::string SPrinter::print(shalimar::Program &program) {
             shalimar::Function &fn = *program.functions()[entry.index];
             if (fn.isRejected()) continue;
             if (!first) out_ += '\n';
+            sync();
+            // The header, the opening brace and the closing one all point at
+            // the line the function was declared on, which is where a reader
+            // told "line N" would go looking for it.
+            mapLine_ = fn.proto().line;
             functionHeader(fn.proto());
             functionBody(fn.body());
             out_ += "}\n";
+            sync();
+            mapLine_ = 0;
         } else {
             shalimar::Stmt &global = *program.globals()[entry.index];
             statement(global);
         }
         first = false;
     }
+    sync();
     return out_;
 }
 

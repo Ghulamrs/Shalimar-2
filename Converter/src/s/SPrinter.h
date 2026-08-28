@@ -2,6 +2,7 @@
 #define C2S_S_SPRINTER_H
 
 #include <string>
+#include <vector>
 
 #include "vendor/Ast.h"
 
@@ -14,6 +15,20 @@ public:
     std::string print(shalimar::Program &program);
 
     std::string printExpr(shalimar::Expr &expr);
+
+    /// The source line each printed line came from, indexed by printed line
+    /// minus one - so `lineMap()[0]` is where the first line of the output was
+    /// written. Valid after `print`, and empty until then.
+    ///
+    /// **The numbers are the input's, not this printer's.** Every statement in
+    /// the tree carries the line of the construct it was built from, and for a
+    /// converted program that is a line of the *C*. So this is what turns a
+    /// complaint about the emitted Shalimar back into a place in the file its
+    /// author is looking at, which is the only file they can act on.
+    ///
+    /// 0 where no statement owns the line: the `uses` clause, the blank line
+    /// between two functions, anything a caller prepended.
+    const std::vector<int> &lineMap() const { return map_; }
 
     static std::string spellReal(double value);
 
@@ -66,8 +81,17 @@ private:
     void indent();
     void line(const std::string &text);
 
+    void sync();
+
     std::string out_;
     int depth_;
+
+    // The map, and the two pieces of bookkeeping that fill it: how far into
+    // out_ the newlines have been counted, and which source line the text
+    // being written now belongs to.
+    std::vector<int> map_;
+    std::size_t scanned_;
+    int mapLine_;
 
     int floor_;
 };

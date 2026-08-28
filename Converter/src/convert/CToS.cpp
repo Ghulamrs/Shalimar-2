@@ -1004,9 +1004,15 @@ void CToS::visit(CDeclStmt &node) {
         if (info.isChar && !isCharValued(*declarator.init->expr())) {
             value = charWrap(std::move(value));
         }
+        // The declarator's position, not the statement's. A CDeclStmt is built
+        // straight from its declaration and never given an offset of its own,
+        // so `node.offset()` is 0 and every hoisted initialiser would claim to
+        // come from line 1. The declarator knows where it was written, and for
+        // `int a = f(), b = g();` split over two lines it is also the more
+        // exact answer of the two.
         block_->push_back(shalimar::StmtPtr(new shalimar::Assign(
             shalimar::ExprPtr(new shalimar::Var(info.sName)), std::move(value),
-            lineOf(node.offset()))));
+            lineOf(declarator.offset))));
     }
 }
 

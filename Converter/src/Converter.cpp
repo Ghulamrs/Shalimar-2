@@ -75,8 +75,18 @@ Converter::Result Converter::convert(const std::string &sourceText,
         }
         if (!guards.empty()) text += "\n";
 
+        // Whatever the guards wrote above belongs to no line of the C - it
+        // describes something that was removed - so the map starts with an
+        // entry per line of it, and the printer's own map follows.
         SPrinter printer;
-        text += printer.print(*converted);
+        const std::string body = printer.print(*converted);
+        for (std::size_t i = 0; i < text.size(); ++i) {
+            if (text[i] == '\n') result.lineMap.push_back(0);
+        }
+        const std::vector<int> &printed = printer.lineMap();
+        result.lineMap.insert(result.lineMap.end(), printed.begin(), printed.end());
+
+        text += body;
         result.output = text;
         result.beyondCount = converter.beyondCount();
         result.ok = true;

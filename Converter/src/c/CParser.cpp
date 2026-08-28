@@ -543,6 +543,10 @@ CStmtPtr CParser::compound() {
 }
 
 CStmtPtr CParser::blockItem() {
+    // Taken before the specifiers are read, like every other statement's is:
+    // a node without a position is one no diagnostic can point at, and this
+    // one silently reported line 1 for as long as it went without.
+    const std::size_t offset = current().offset;
     if (atTypeStart()) {
         Specifiers specifiers;
         bool sawAny = false;
@@ -551,6 +555,7 @@ CStmtPtr CParser::blockItem() {
                                                          nullptr, nullptr);
         if (decl == nullptr) return nullptr;
         CStmtPtr stmt(new CDeclStmt(std::move(decl)));
+        stmt->setOffset(offset);
         return stmt;
     }
     return statement();
@@ -619,6 +624,10 @@ CStmtPtr CParser::statement() {
         if (!expect("(", "after 'for'")) return nullptr;
 
         CStmtPtr init;
+        // The initialiser's own position, not the `for`'s: it is a statement
+        // like any other, and what it lowers to lands on the line it was
+        // written on.
+        const std::size_t initOffset = current().offset;
         if (at(";")) {
             advance();
         } else if (atTypeStart()) {
@@ -630,11 +639,13 @@ CStmtPtr CParser::statement() {
                                                              nullptr, nullptr);
             if (decl == nullptr) return nullptr;
             init.reset(new CDeclStmt(std::move(decl)));
+            init->setOffset(initOffset);
         } else {
             CExprPtr expr = expression();
             if (expr == nullptr) return nullptr;
             if (!expect(";", "after the for initialiser")) return nullptr;
             init.reset(new CExprStmt(std::move(expr)));
+            init->setOffset(initOffset);
         }
 
         CExprPtr cond;

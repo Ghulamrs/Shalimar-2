@@ -28,6 +28,8 @@ const char *Options::usage() {
         "  --no-includes        omit the #include lines generated C needs\n"
         "  --canon              print the input back in canonical form,\n"
         "                       converting nothing\n"
+        "  --lines              write, to standard error, which input line each\n"
+        "                       output line came from - C to Shalimar only\n"
         "\n"
         "  Rewrites that are refused by default, because each one compiles\n"
         "  without meaning quite what the original did:\n"
@@ -84,6 +86,7 @@ bool Options::parse(int argc, char **argv, Diagnostics &diagnostics) {
         if (arg == "--to-c")        { direction_ = Direction::ShalimarToC; continue; }
         if (arg == "--no-includes") { emitIncludes_ = false; continue; }
         if (arg == "--canon")        { canonicalise_ = true; continue; }
+        if (arg == "--lines")        { showLineMap_ = true; continue; }
 
         if (arg == "--allow-short-circuit")   { permissions_.allowShortCircuit(); continue; }
         if (arg == "--allow-char-arithmetic") { permissions_.allowCharArithmetic(); continue; }

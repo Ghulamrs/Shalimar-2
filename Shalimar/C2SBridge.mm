@@ -16,6 +16,7 @@ static char *dup(const std::string &s) {
 C2SResult c2s_c_to_shalimar(const char *source, const char *name) {
     C2SResult out;
     out.ok = 0; out.beyondCount = 0; out.output = nullptr; out.report = nullptr;
+    out.lines = nullptr; out.lineCount = 0;
 
     const c2s::Converter::Result r =
         c2s::Converter::convert(source ? source : "", name ? name : "input.c",
@@ -39,11 +40,25 @@ C2SResult c2s_c_to_shalimar(const char *source, const char *name) {
     out.beyondCount = r.beyondCount;
     out.output = dup(r.output);
     out.report = dup(report.str());
+
+    // Copied out of the vector rather than handed over, for the same reason
+    // the two strings are: nothing C++ crosses this header, so what Swift is
+    // given has to be memory it can hold after the Result is gone.
+    if (!r.lineMap.empty()) {
+        out.lines = static_cast<int *>(std::malloc(r.lineMap.size() * sizeof(int)));
+        if (out.lines != nullptr) {
+            for (std::size_t i = 0; i < r.lineMap.size(); ++i) {
+                out.lines[i] = r.lineMap[i];
+            }
+            out.lineCount = static_cast<int>(r.lineMap.size());
+        }
+    }
     return out;
 }
 
 void c2s_free(C2SResult *r) {
     if (!r) return;
-    std::free(r->output); std::free(r->report);
-    r->output = nullptr; r->report = nullptr;
+    std::free(r->output); std::free(r->report); std::free(r->lines);
+    r->output = nullptr; r->report = nullptr; r->lines = nullptr;
+    r->lineCount = 0;
 }
