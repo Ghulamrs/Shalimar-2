@@ -139,11 +139,14 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         // The years in the same short form as the run banner and the reference footer, so
         // the three places the app names itself all say the same thing.
         //
-        // **2.0 is this app, and it is not the language's number.** The line said 3.0
-        // until 2026-08-28, which is the version of Shalimar the language - so an app
-        // called Shalimar2 announced itself as 3.0 in its own footer, with nothing on
-        // screen to say which of the two the number belonged to. The language keeps its
-        // 3.0 where it is documented, in the reference, and says so there in words.
+        // **2.0 everywhere a version is shown, with no exception - the user's call, made
+        // on 2026-08-28 after the alternative was put to them.** Three numbers had been
+        // in play: this app is 2.0, the bundle still carried 2.69 from the app it was
+        // seeded from, and both the footer and the reference said 3.0 - the version of
+        // Shalimar the *language*. One number in front of the reader beats an accurate
+        // distinction they have no way to see, so the language's 3.0 is not shown
+        // anywhere any more. It is still 3.0; ../Compiler-S and SHALIMAR_LANGUAGE.md
+        // are where that is recorded, and neither moved.
         tagline.text = "©2019-26 Shalimar 2.0, A mini language compiler."
         tagline.font = UIFont.systemFont(ofSize: 11, weight: .medium)
         // Embossed: the letter is the pale face catching the light and the shadow falls
