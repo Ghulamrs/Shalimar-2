@@ -12,7 +12,7 @@ import MessageUI
 import VisionKit
 import Vision
 
-class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate, VNDocumentCameraViewControllerDelegate {
+class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate, VNDocumentCameraViewControllerDelegate, MFMailComposeViewControllerDelegate {
     weak var coordinator: MainCoordinator?
     @IBOutlet var lineview: UITextView!
     @IBOutlet var program: UITextView!
@@ -602,11 +602,35 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
             keepEditorAt(reading)
             return
         }
+        consoleSettling = true
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.85,
-                       initialSpringVelocity: 0, options: [.curveEaseInOut]) {
+                       initialSpringVelocity: 0, options: [.curveEaseInOut], animations: {
             self.view.layoutIfNeeded()
             self.keepEditorAt(reading)
-        }
+        }, completion: { [weak self] _ in
+            guard let self = self else { return }
+            self.consoleSettling = false
+            let waiting = self.afterConsoleSettles
+            self.afterConsoleSettles = nil
+            waiting?()
+        })
+    }
+
+    // Whether that spring is still running, and what is waiting for it to stop.
+    private var consoleSettling = false
+    private var afterConsoleSettles: (() -> Void)?
+
+    /// Runs `work` once the console pane has finished moving, or at once if it is not.
+    ///
+    /// **Presenting a view controller during that animation does not work** - UIKit is
+    /// already running a transition and the second one is dropped, silently. Everything
+    /// else the editor does can happen against a moving pane; a presentation cannot.
+    ///
+    /// It showed up as a share sheet that appeared on the second tap of Export and not
+    /// the first, which is exactly backwards from how it looks: the first tap is the one
+    /// that opens the console, so the first tap is the one with an animation in the way.
+    private func whenConsoleSettles(_ work: @escaping () -> Void) {
+        if consoleSettling { afterConsoleSettles = work } else { work() }
     }
 
     // Only after the layout pass, so the bounds and the wrapping are the new ones. Clamped
@@ -1255,8 +1279,20 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         }
 
         append("Converted to C and saved as \(name).\n", .system)
-        offerToShare(written)
+        whenConsoleSettles { [weak self] in self?.mail(written, as: name) }
     }
+
+    /// Where an exported program goes.
+    ///
+    /// **A .c is of no use on this phone** - nothing here compiles it - so the export is
+    /// finished only when the file has left. It is addressed rather than offered: the
+    /// destination is the same every time, and a share sheet would ask for it again on
+    /// every export.
+    ///
+    /// The file is still written into Documents first and stays there. Mail can be
+    /// cancelled, a phone can be offline, and a program converted twice should not have
+    /// to be converted a third time.
+    static let exportTo = "g_r_akhtar@icloud.com"
 
     /// Converts the Shalimar on screen to C, or reports why it cannot and answers nil.
     ///
@@ -1320,6 +1356,54 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         }
     }
 
+    // The composer is presented filled in and NOT sent: the send button is the user's,
+    // which is what keeps an export a thing they did rather than a thing that happened.
+    private func mail(_ url: URL, as name: String) {
+        guard MFMailComposeViewController.canSendMail() else {
+            // No mail account on this device - a simulator, or a phone signed out of
+            // Mail. The file exists and the sheet can still carry it somewhere, so the
+            // export is not lost; it just is not addressed.
+            append("This device has no mail account set up, so \(name) could not be "
+                   + "addressed. It is saved here, and can be sent another way.\n", .warning)
+            offerToShare(url)
+            return
+        }
+
+        let composer = MFMailComposeViewController()
+        composer.mailComposeDelegate = self
+        composer.setToRecipients([Self.exportTo])
+        composer.setSubject(name)
+        composer.setMessageBody("\(name), converted from Shalimar.\n", isHTML: false)
+        if let data = try? Data(contentsOf: url) {
+            // text/x-c and not text/plain: a mail client that knows the type offers to
+            // open it in something that can read C.
+            composer.addAttachmentData(data, mimeType: "text/x-c", fileName: name)
+        }
+        present(composer, animated: true)
+    }
+
+    func mailComposeController(_ controller: MFMailComposeViewController,
+                               didFinishWith result: MFMailComposeResult,
+                               error: Error?) {
+        controller.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            // Said in the console rather than in an alert: the console is where this
+            // export has been reporting itself all along, and the last line of the story
+            // belongs with the rest of it.
+            switch result {
+            case .sent:      self.append("Sent to \(Self.exportTo).\n", .system)
+            case .saved:     self.append("Saved to your drafts.\n", .system)
+            case .cancelled: self.append("Not sent. The file is still saved here.\n", .system)
+            case .failed:    self.append("Mail could not send it: "
+                                         + "\(error?.localizedDescription ?? "no reason given").\n", .error)
+            @unknown default: break
+            }
+        }
+    }
+
+    // The way off the phone when mail is not set up. Kept for that alone - it is not
+    // offered beside the mail route, because two ways to do one thing is a question the
+    // user did not ask to be asked.
     private func offerToShare(_ url: URL) {
         let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         sheet.popoverPresentationController?.barButtonItem = exportButton
