@@ -219,7 +219,16 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
             style: .plain, target: self, action: #selector(helpTapped))
         help.tintColor = UIColor(displayP3Red: 0.0, green: 0.25, blue: 1.0, alpha: 1)
 
-        navigationItem.rightBarButtonItems = [scan, save, help]
+        // The share glyph and not a second arrow: this hands the program to
+        // something else, which is what the symbol means everywhere on the
+        // phone. The green arrow beside it runs a program; converting one is
+        // not running it, and the two must not look like the same act.
+        let export = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up.fill", withConfiguration: heavy),
+            style: .plain, target: self, action: #selector(exportTapped))
+        export.tintColor = UIColor(displayP3Red: 1.0, green: 0.45, blue: 0.0, alpha: 1)
+        exportButton = export
+
+        navigationItem.rightBarButtonItems = [scan, save, export, help]
 
         // Lives in the nav bar (as titleView, dead center) instead of docked below the
         // editor, so the on-screen keyboard - which covers the bottom of the screen -
@@ -1205,6 +1214,116 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
             self?.append(text, .output)
         }
         interpreter.run(checkedAST)
+    }
+
+    // Kept so the share sheet has something to point at on an iPad, where a popover
+    // without an anchor is a crash rather than a layout problem.
+    private weak var exportButton: UIBarButtonItem?
+
+    // ------------------------------------------------------------ Shalimar out, as C
+    //
+    // **This one leaves the phone.** Everything else the converter does here is in
+    // service of running a program on the device; this is the opposite - the C is of no
+    // use in this app, which cannot compile it, and every use it has is somewhere with
+    // a compiler. So the file is written where the user's programs are AND offered to
+    // the share sheet, because those are the two ways off a phone: keep it, or send it.
+    @objc func exportTapped() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        guard let source = program.text else { return }
+
+        setConsoleHidden(false, animated: true)
+        clearConsole()
+        append(Self.banner, .system)
+        defer { layoutErrorStrips() }
+
+        // Reading a C program and answering with C would be a copy, and a slower one -
+        // `--canon` reprints it, dropping every comment on the way. Said rather than
+        // done quietly, because the button is in the bar either way.
+        if Self.looksLikeC(source) {
+            append("This program is already C. There is nothing to convert.\n", .error)
+            return
+        }
+
+        guard let c = Self.cFromShalimar(source, report: { [weak self] text, style in
+            self?.append(text, style)
+        }) else { return }
+
+        let name = Self.exportName(for: coordinator?.fileURL ?? "")
+        guard let written = write(c, as: name) else {
+            append("Could not write \(name).\n", .error)
+            return
+        }
+
+        append("Converted to C and saved as \(name).\n", .system)
+        offerToShare(written)
+    }
+
+    /// Converts the Shalimar on screen to C, or reports why it cannot and answers nil.
+    ///
+    /// **Gated on `beyondCount` as well as on the errors**, the same way the C direction
+    /// is: a marked-up file converts with `ok = 1`, and handing someone a .c with
+    /// `/* #BEYOND SHALIMAR */` in the middle of it is handing them a file that will not
+    /// compile. The converter's own rule is that nothing is written while anything is
+    /// outstanding, and a half-written file is worse than a refusal.
+    ///
+    /// The lines these diagnostics carry are the Shalimar's, and the Shalimar is what is
+    /// on screen - so unlike the other direction there is nothing to translate. That is
+    /// why this takes a plain reporting closure and installs no map.
+    private static func cFromShalimar(_ source: String,
+                                      report: (String, ConsoleStyle) -> Void) -> String? {
+        var result = c2s_shalimar_to_c(source, "program.shm")
+        defer { c2s_free(&result) }
+
+        let text = result.report.map { String(cString: $0) } ?? ""
+        var sawError = false
+
+        for row in text.split(separator: "\n") {
+            let f = row.split(separator: "\t", maxSplits: 4, omittingEmptySubsequences: false)
+            guard f.count == 5 else { continue }
+            let bad = f[2] == "E"
+            if bad { sawError = true }
+            report("\(bad ? "Error" : "Warning"): line \(f[0]): \(f[4])\n", bad ? .error : .warning)
+        }
+
+        guard result.beyondCount == 0 && !sawError else {
+            report("This program has \(result.beyondCount) construct"
+                   + (result.beyondCount == 1 ? "" : "s")
+                   + " with no C form, so no file was written.\n", .error)
+            return nil
+        }
+        return result.output.map { String(cString: $0) }
+    }
+
+    /// `1-gcd.shm` becomes `1-gcd.c`. A program that has never been saved has no name to
+    /// take one from, and `program.c` is what it gets - the file is about to be shared,
+    /// and something has to be on the sheet.
+    static func exportName(for fileURL: String) -> String {
+        let stem = (fileURL as NSString).deletingPathExtension
+        return stem.isEmpty ? "program.c" : stem + ".c"
+    }
+
+    // Beside the user's own programs, and deliberately: Documents is the one place on
+    // this phone the user can reach from elsewhere, and the file list shows every file
+    // in it - so a .c written here is visible, openable, and can be sent again later
+    // without converting again.
+    private func write(_ text: String, as name: String) -> URL? {
+        do {
+            let documents = try FileManager.default.url(for: .documentDirectory,
+                                                        in: .userDomainMask,
+                                                        appropriateFor: nil, create: true)
+            let url = documents.appendingPathComponent(name)
+            try text.write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch let error as NSError {
+            print(error)
+            return nil
+        }
+    }
+
+    private func offerToShare(_ url: URL) {
+        let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        sheet.popoverPresentationController?.barButtonItem = exportButton
+        present(sheet, animated: true)
     }
 
     // Pushed rather than presented so the editor keeps its place underneath and the

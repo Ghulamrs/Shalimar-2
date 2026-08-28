@@ -21,6 +21,14 @@ typedef struct {
 } C2SResult;
 
 C2SResult c2s_c_to_shalimar(const char *source, const char *name);
+
+/* The other direction. Same result, with one field empty: `lines` maps output
+   lines back to input lines so that a complaint about a file nobody can see
+   can be aimed at the file on screen, and this direction has no such problem -
+   the Shalimar is what the author is looking at, and the C is what they are
+   being handed. Its diagnostics already carry the line they mean. */
+C2SResult c2s_shalimar_to_c(const char *source, const char *name);
+
 void      c2s_free(C2SResult *r);
 
 #ifdef __cplusplus

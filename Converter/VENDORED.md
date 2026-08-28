@@ -1,6 +1,6 @@
 # Vendored converter
 
-`Converter/src` is copied from **Converter-C2S** at `bd68a2d`, minus
+`Converter/src` is copied from **Converter-C2S** at `218b76e`, minus
 `main.cpp` — that file is the command-line wrapper, and this app supplies its
 own entry point.
 

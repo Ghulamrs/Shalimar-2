@@ -1167,12 +1167,23 @@ std::string SToC::preamble() const {
                        helpers_.count("c2s_print_grid1_int") != 0 ||
                        helpers_.count("c2s_print_grid2_int") != 0;
 
-    if (usesPrint_) {
-        out +=
-            "static int c2s_places = 7;\n"
-            "static int c2s_grid_places = 6;\n"
-            "static int c2s_line_has_text = 0;\n";
+    // Each of these is emitted only where something reads it. Every helper
+    // below is already gated that way; these three were not, so a program that
+    // printed nothing but integers carried two decimal-place settings it never
+    // consulted - and a `cc -Wall` elsewhere said so twice. Output that is
+    // going to somebody else's terminal has to arrive without warnings of its
+    // own, or the first thing it does is look broken.
+    //
+    // `c2s_line_has_text` stays with `usesPrint_`: every print helper assigns
+    // it, so omitting the declaration would not compile. Only the grid helper
+    // reads it.
+    const bool places = helpers_.count("c2s_print_real") != 0 || grids ||
+                        helpers_.count("c2s_print_places") != 0;
+    if (places) out += "static int c2s_places = 7;\n";
+    if (grids || helpers_.count("c2s_print_places") != 0) {
+        out += "static int c2s_grid_places = 6;\n";
     }
+    if (usesPrint_) out += "static int c2s_line_has_text = 0;\n";
     if (helpers_.count("c2s_print_int") != 0) {
         out +=
             "static void c2s_print_int(int v) {\n"

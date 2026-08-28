@@ -13,14 +13,18 @@ static char *dup(const std::string &s) {
     return p;
 }
 
-C2SResult c2s_c_to_shalimar(const char *source, const char *name) {
+// Both directions differ by one argument, so they share everything below it.
+// The direction is passed explicitly and never inferred: c2s infers it from the
+// file's EXTENSION, and this app's files are all named .shm whatever they hold.
+static C2SResult convert(const char *source, const char *name,
+                         c2s::Direction direction) {
     C2SResult out;
     out.ok = 0; out.beyondCount = 0; out.output = nullptr; out.report = nullptr;
     out.lines = nullptr; out.lineCount = 0;
 
     const c2s::Converter::Result r =
-        c2s::Converter::convert(source ? source : "", name ? name : "input.c",
-                                c2s::Direction::CToShalimar);
+        c2s::Converter::convert(source ? source : "", name ? name : "input",
+                                direction);
 
     std::ostringstream report;
     for (std::size_t i = 0; i < r.diagnostics.size(); ++i) {
@@ -54,6 +58,14 @@ C2SResult c2s_c_to_shalimar(const char *source, const char *name) {
         }
     }
     return out;
+}
+
+C2SResult c2s_c_to_shalimar(const char *source, const char *name) {
+    return convert(source, name, c2s::Direction::CToShalimar);
+}
+
+C2SResult c2s_shalimar_to_c(const char *source, const char *name) {
+    return convert(source, name, c2s::Direction::ShalimarToC);
 }
 
 void c2s_free(C2SResult *r) {
