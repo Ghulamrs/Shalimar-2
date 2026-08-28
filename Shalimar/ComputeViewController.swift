@@ -12,7 +12,7 @@ import MessageUI
 import VisionKit
 import Vision
 
-class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate, VNDocumentCameraViewControllerDelegate, MFMailComposeViewControllerDelegate {
+class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate, VNDocumentCameraViewControllerDelegate {
     weak var coordinator: MainCoordinator?
     @IBOutlet var lineview: UITextView!
     @IBOutlet var program: UITextView!
@@ -1278,21 +1278,10 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
             return
         }
 
-        append("Converted to C and saved as \(name).\n", .system)
-        whenConsoleSettles { [weak self] in self?.mail(written, as: name) }
+        append("Converted to C and saved as \(name).\n"
+               + "Choose Notes to keep it there under that name.\n", .system)
+        whenConsoleSettles { [weak self] in self?.offerToKeep(written) }
     }
-
-    /// Where an exported program goes.
-    ///
-    /// **A .c is of no use on this phone** - nothing here compiles it - so the export is
-    /// finished only when the file has left. It is addressed rather than offered: the
-    /// destination is the same every time, and a share sheet would ask for it again on
-    /// every export.
-    ///
-    /// The file is still written into Documents first and stays there. Mail can be
-    /// cancelled, a phone can be offline, and a program converted twice should not have
-    /// to be converted a third time.
-    static let exportTo = "g_r_akhtar@icloud.com"
 
     /// Converts the Shalimar on screen to C, or reports why it cannot and answers nil.
     ///
@@ -1356,55 +1345,23 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         }
     }
 
-    // The composer is presented filled in and NOT sent: the send button is the user's,
-    // which is what keeps an export a thing they did rather than a thing that happened.
-    private func mail(_ url: URL, as name: String) {
-        guard MFMailComposeViewController.canSendMail() else {
-            // No mail account on this device - a simulator, or a phone signed out of
-            // Mail. The file exists and the sheet can still carry it somewhere, so the
-            // export is not lost; it just is not addressed.
-            append("This device has no mail account set up, so \(name) could not be "
-                   + "addressed. It is saved here, and can be sent another way.\n", .warning)
-            offerToShare(url)
-            return
-        }
-
-        let composer = MFMailComposeViewController()
-        composer.mailComposeDelegate = self
-        composer.setToRecipients([Self.exportTo])
-        composer.setSubject(name)
-        composer.setMessageBody("\(name), converted from Shalimar.\n", isHTML: false)
-        if let data = try? Data(contentsOf: url) {
-            // text/x-c and not text/plain: a mail client that knows the type offers to
-            // open it in something that can read C.
-            composer.addAttachmentData(data, mimeType: "text/x-c", fileName: name)
-        }
-        present(composer, animated: true)
-    }
-
-    func mailComposeController(_ controller: MFMailComposeViewController,
-                               didFinishWith result: MFMailComposeResult,
-                               error: Error?) {
-        controller.dismiss(animated: true) { [weak self] in
-            guard let self = self else { return }
-            // Said in the console rather than in an alert: the console is where this
-            // export has been reporting itself all along, and the last line of the story
-            // belongs with the rest of it.
-            switch result {
-            case .sent:      self.append("Sent to \(Self.exportTo).\n", .system)
-            case .saved:     self.append("Saved to your drafts.\n", .system)
-            case .cancelled: self.append("Not sent. The file is still saved here.\n", .system)
-            case .failed:    self.append("Mail could not send it: "
-                                         + "\(error?.localizedDescription ?? "no reason given").\n", .error)
-            @unknown default: break
-            }
-        }
-    }
-
-    // The way off the phone when mail is not set up. Kept for that alone - it is not
-    // offered beside the mail route, because two ways to do one thing is a question the
-    // user did not ask to be asked.
-    private func offerToShare(_ url: URL) {
+    /// Offers the written file to whatever on this phone can keep it - Notes among them.
+    ///
+    /// **The sheet is the only way an app can put something into Notes.** iOS publishes
+    /// no Notes API; Notes takes part as a share destination like any other app, so an
+    /// export that lands in a note lands there because the sheet was shown and Notes was
+    /// chosen. There is no supported call that writes the note directly, and the ways
+    /// that look like one are private.
+    ///
+    /// The **file URL** is shared and not its text, and that is what carries the name:
+    /// Notes takes the file as an attachment called `gcd.c`, so the note is that name.
+    /// Handing over the text instead would make a note whose title is its first line -
+    /// `#include <stdio.h>` - which names nothing.
+    ///
+    /// The file is in Documents either way, and stays there whether the sheet is used or
+    /// dismissed. Nothing leaves this phone unless the user picks something that sends
+    /// it: Notes, Files and Copy all keep it here.
+    private func offerToKeep(_ url: URL) {
         let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         sheet.popoverPresentationController?.barButtonItem = exportButton
         present(sheet, animated: true)

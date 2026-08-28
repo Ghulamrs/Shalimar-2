@@ -639,20 +639,21 @@ final class HelpViewController: UIViewController {
     -------------------------
     The orange button converts the Shalimar you
     are looking at into C, saves it beside your
-    programs as a .c, and opens a mail addressed
-    to g_r_akhtar@icloud.com with the file
-    attached. Nothing is sent until you send it.
+    programs as a .c, and offers it to whatever
+    on this phone can keep it. Choose Notes and
+    the note is that file, under that name -
+    gcd.c, not "gcd.c copy" or a first line.
 
     That C is for a compiler somewhere else -
     this app cannot compile it, and the file is
     of no use here beyond being read. It is
     plain C89 and compiles with no warnings.
 
-    The file stays on the phone whether the mail
-    goes or not, so a program converted once
-    need not be converted again. On a phone with
-    no mail account set up, the console says so
-    and offers the other ways of sending it.
+    The file stays with your programs whether
+    you keep a copy elsewhere or not, so a
+    program converted once need not be converted
+    again. Nothing leaves the phone unless you
+    pick something that sends it.
 
     A print command has no single C form, so the
     C arrives with three or four small functions
