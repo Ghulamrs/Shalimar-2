@@ -1361,6 +1361,14 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
     /// The file is in Documents either way, and stays there whether the sheet is used or
     /// dismissed. Nothing leaves this phone unless the user picks something that sends
     /// it: Notes, Files and Copy all keep it here.
+    ///
+    /// **The .c goes alone, and the .shm deliberately does not go with it** - decided on
+    /// 2026-08-28, with the alternative on the table. The cost was known and accepted:
+    /// the conversion drops every comment, so the exported note is a lossy copy of the
+    /// program and cannot rebuild it. What makes that acceptable is that the .shm has
+    /// never left - it is in Documents, listed on the home screen, and the export is a
+    /// derivative rather than an archive. A program with no C form therefore exports
+    /// nothing, which follows from the same choice.
     private func offerToKeep(_ url: URL) {
         let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         sheet.popoverPresentationController?.barButtonItem = exportButton
