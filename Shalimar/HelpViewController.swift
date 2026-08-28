@@ -613,27 +613,65 @@ final class HelpViewController: UIViewController {
     stays Shalimar and gets Shalimar's errors,
     which are the ones you can act on.
 
-    What has no Shalimar form is refused rather
-    than guessed at, and each place is named:
-
-      pointers and &, struct and union,
-      sizeof, long long, and ?: or ++ used
-      inside a larger expression
-
-    A switch converts, fall-through and shared
-    labels included. So do do-while, += and -=,
-    a declaration inside a block, and i++ on a
-    line of its own.
-
-    printf becomes a print command, and there is
-    one difference it cannot avoid: ? writes a
-    space after every item. A format whose text
-    runs straight against a hole - "(%d)" - comes
-    out with that space, and the console says so
-    when it happens.
-
     Line numbers name the C you are looking at,
     not the Shalimar it became.
+
+    WHAT TO LEAVE OUT OF THE C
+    --------------------------
+    Each of these is refused with its line
+    named, rather than guessed at:
+
+      *p  &x         no pointers
+      struct union   and so p.x and p->x
+      sizeof         arrays answer .row,
+                     .col and .dim(n)
+      long  short    int and real are the
+      unsigned       only whole and decimal
+      long long      numbers there are
+      static, inside a function
+      goto
+      ++ or -- inside an expression
+      ?: inside a LARGER expression
+
+    The last two are about where, not what.
+    Written plainly they convert:
+
+      i++;                  converts
+      x = i ? 2 : 3;        converts
+      x = 1 + (i ? 2 : 3);  refused
+
+    double and float both become real. So do
+    switch with fall-through and shared labels,
+    do-while, += and -=, && and ||, and a
+    declaration inside a block.
+
+    PRINTF
+    ------
+    Six conversions carry, and %% for a per cent
+    sign:
+
+      %d  %i     an int
+      %s         a char array
+      %c         a char
+      %f         a real, 6 decimal places
+      %.Nf       a real, N places, N up to 17
+
+    Nothing else does. The ones worth knowing
+    before you write a line are a width and a
+    flag, because they look ordinary:
+
+      %4d   %-5d   %8.2f   refused
+      %g    %e     %x      refused
+      %ld   %u     %.3d    refused
+
+    So a table is spaced out with spaces in the
+    format rather than with %4d.
+
+    One difference cannot be avoided: ? writes a
+    space after every item, so a format whose
+    text runs against a hole - "(%d)" - gains
+    that space. The console says so when it
+    happens.
 
     TAKING A PROGRAM OUT AS C
     -------------------------
@@ -701,7 +739,7 @@ final class HelpViewController: UIViewController {
     names the character and its code.
 
     =============================
-    Shalimar language 3.0
+    Shalimar 2.0
     (c) 2019-26 G. R. Akhtar, Islamabad
     August 07, 2026
     =============================
