@@ -138,7 +138,13 @@ class ComputeViewController: UIViewController, Storyboarded, UITextViewDelegate,
         let tagline = UILabel()
         // The years in the same short form as the run banner and the reference footer, so
         // the three places the app names itself all say the same thing.
-        tagline.text = "©2019-26 Shalimar 3.0, A mini language compiler."
+        //
+        // **2.0 is this app, and it is not the language's number.** The line said 3.0
+        // until 2026-08-28, which is the version of Shalimar the language - so an app
+        // called Shalimar2 announced itself as 3.0 in its own footer, with nothing on
+        // screen to say which of the two the number belonged to. The language keeps its
+        // 3.0 where it is documented, in the reference, and says so there in words.
+        tagline.text = "©2019-26 Shalimar 2.0, A mini language compiler."
         tagline.font = UIFont.systemFont(ofSize: 11, weight: .medium)
         // Embossed: the letter is the pale face catching the light and the shadow falls
         // below it, darker, so the line reads as standing off the page. Reversing those

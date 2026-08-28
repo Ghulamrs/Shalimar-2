@@ -701,7 +701,7 @@ final class HelpViewController: UIViewController {
     names the character and its code.
 
     =============================
-    Shalimar 3.0
+    Shalimar language 3.0
     (c) 2019-26 G. R. Akhtar, Islamabad
     August 07, 2026
     =============================
