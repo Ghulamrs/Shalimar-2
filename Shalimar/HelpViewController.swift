@@ -10,8 +10,10 @@
 //
 //  Every code line below is real Shalimar and runs as written. Two rules bite hardest
 //  when copying from here, so they are stated early and obeyed throughout: a print
-//  command must be the first thing on its line, and a declaration must sit at the top
-//  of its function rather than inside an if or a loop.
+//  command must be the first thing on its line, and a file borrows the library
+//  functions it calls. (A third once stood here - that a declaration had to sit at the
+//  top of its function - and the language dropped it; the reference below had been
+//  corrected and this note had not.)
 //
 
 import UIKit
@@ -595,6 +597,71 @@ final class HelpViewController: UIViewController {
       two loops at once needs a flag or a return.
 
       There is no input. A program only prints.
+
+    RUNNING C
+    ---------
+    This app runs C as well, and nothing is
+    compiled on the phone to do it. A C program
+    is converted to Shalimar first, and the
+    Shalimar is what runs - so what C can do
+    here is what Shalimar can do.
+
+    A program is taken as C when it has no
+    fun <...> in it AND it has an #include or a
+    main() with a type. The file's name is not
+    consulted: a half-finished Shalimar program
+    stays Shalimar and gets Shalimar's errors,
+    which are the ones you can act on.
+
+    What has no Shalimar form is refused rather
+    than guessed at, and each place is named:
+
+      pointers and &, struct and union,
+      sizeof, long long, and ?: or ++ used
+      inside a larger expression
+
+    A switch converts, fall-through and shared
+    labels included. So do do-while, += and -=,
+    a declaration inside a block, and i++ on a
+    line of its own.
+
+    printf becomes a print command, and there is
+    one difference it cannot avoid: ? writes a
+    space after every item. A format whose text
+    runs straight against a hole - "(%d)" - comes
+    out with that space, and the console says so
+    when it happens.
+
+    Line numbers name the C you are looking at,
+    not the Shalimar it became.
+
+    TAKING A PROGRAM OUT AS C
+    -------------------------
+    The orange button converts the Shalimar you
+    are looking at into C, saves it beside your
+    programs as a .c, and offers to send it on.
+
+    That C is for a compiler somewhere else -
+    this app cannot compile it, and the file is
+    of no use here beyond being read. It is
+    plain C89 and compiles with no warnings.
+
+    A print command has no single C form, so the
+    C arrives with three or four small functions
+    of its own at the top and calls to them. That
+    is what keeps its output identical, space for
+    space, to what you saw here.
+
+    Some Shalimar has no C form either, and then
+    no file is written at all rather than a
+    half-written one:
+
+      int size : 3
+      int grid[size]
+
+      Error: an array extent that is not a
+      constant - C89 sizes arrays at compile
+      time
 
     THE EDITOR
     ----------
